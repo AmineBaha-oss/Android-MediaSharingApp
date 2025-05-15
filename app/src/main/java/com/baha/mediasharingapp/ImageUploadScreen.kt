@@ -10,50 +10,41 @@ import androidx.navigation.NavController
 
 @Composable
 fun ImageUploadScreen(
-    navController: NavController,
-    onUpload: (String, String) -> Unit
+    nav: NavController,
+    onUpload: (String, String, Double, Double) -> Unit
 ) {
-    var selectedImage by remember { mutableStateOf<String?>(null) }
+    var imgUri by remember { mutableStateOf<String?>(null) }
     var caption by remember { mutableStateOf("") }
+    var lat    by remember { mutableStateOf(0.0) }
+    var lng    by remember { mutableStateOf(0.0) }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
+        Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement   = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Image Upload", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (selectedImage != null) {
-            Text("Selected Image: $selectedImage")
-        } else {
-            Text("No image selected")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = {
-            selectedImage = "https://via.placeholder.com/300"
-        }) {
+        Text("Upload", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(16.dp))
+        Text(imgUri ?: "No image selected")
+        Spacer(Modifier.height(8.dp))
+        Button({ /* TODO: launch image picker, set imgUri */ }) {
             Text("Select Image")
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
         OutlinedTextField(
-            value = caption,
+            value     = caption,
             onValueChange = { caption = it },
-            label = { Text("Caption") },
-            modifier = Modifier.fillMaxWidth()
+            label     = { Text("Caption") },
+            modifier  = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
         Button(
             onClick = {
-                if (selectedImage != null && caption.isNotBlank()) {
-                    onUpload(selectedImage!!, caption)
-                }
+                imgUri?.let { onUpload(it, caption, lat, lng) }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Upload Image")
+            Text("Upload")
         }
     }
 }

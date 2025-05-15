@@ -1,48 +1,85 @@
-package com.baha.mediasharingapp
+package com.baha.mediasharingapp.navigation
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-//aura
-sealed class Screen(val route: String) {
-    object Login : Screen("login")
-    object Signup : Screen("signup")
-    object Feed : Screen("feed")
-    object Upload : Screen("upload")
-}
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.baha.mediasharingapp.FeedScreen
+import com.baha.mediasharingapp.MapScreen
+import com.baha.mediasharingapp.data.PostRepository
+import com.baha.mediasharingapp.data.local.AppDatabase
+import com.baha.mediasharingapp.viewmodel.PostViewModel
+import com.baha.mediasharingapp.viewmodel.PostViewModelFactory
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val posts = remember {
-        mutableStateListOf(
-            Post(1, "user1", "https://via.placeholder.com/150", "Beautiful scenery!"),
-            Post(2, "user2", "https://via.placeholder.com/150", "Loving this view."),
-            Post(3, "user3", "https://via.placeholder.com/150", "Had a great day!")
-        )
-    }
 
-    NavHost(navController = navController, startDestination = Screen.Login.route) {
-        composable(Screen.Login.route) {
-            LoginScreen(navController)
-        }
-        composable(Screen.Signup.route) {
-            SignupScreen(navController)
-        }
-        composable(Screen.Feed.route) {
-            FeedScreen(navController, posts)
-        }
-        composable(Screen.Upload.route) {
-            ImageUploadScreen(navController, onUpload = { imageUrl, caption ->
-                val newId = (posts.maxOfOrNull { it.id } ?: 0) + 1
-                posts.add(Post(newId, "CurrentUser", imageUrl, caption))
-                navController.navigate(Screen.Feed.route) {
-                    popUpTo(Screen.Feed.route) { inclusive = true }
+    // instantiate DB → repo → VM
+    val context = LocalContext.current
+    val db = AppDatabase.getInstance(context)
+    val repo = PostRepository(db.postDao())
+    val vm: PostViewModel = viewModel(
+        factory = PostViewModelFactory(repo)
+    )
+
+    var selectedScreen by remember { mutableStateOf(BottomScreen.Feed) }
+
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                BottomScreen.values().forEach { screen ->
+                    NavigationBarItem(
+                        icon = { Icon(screen.icon, contentDescription = screen.label) },
+                        selected = screen == selectedScreen,
+                        onClick = {
+                            selectedScreen = screen
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.startDestinationId) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
                 }
-            })
+            }
+        }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = BottomScreen.Feed.route,
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            composable(BottomScreen.Feed.route) {
+                FeedScreen(vm, navController)
+            }
+            composable(BottomScreen.Map.route) {
+                MapScreen(vm)
+            }
+            composable(BottomScreen.Post.route) {
+                PostScreen(vm)
+            }
+            composable(BottomScreen.Profile.route) {
+                ProfileScreen()
+            }
         }
     }
+}
+
+enum class BottomScreen(val route: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val label: String) {
+    Feed("feed", Icons.Default.Home, "Feed"),
+    Map("map", Map, "Map"),
+    Post("post", Icons.Default.Add, "Post"),
+    Profile("profile", Icons.Default.Person, "Profile")
 }

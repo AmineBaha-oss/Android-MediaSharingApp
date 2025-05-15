@@ -1,57 +1,43 @@
 package com.baha.mediasharingapp
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.Card
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun FeedScreen(navController: NavController, posts: List<Post>) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Feed") },
-                actions = {
-                    IconButton(onClick = { navController.navigate(Screen.Upload.route) }) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Upload")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(8.dp)
-        ) {
-            items(posts) { post ->
-                PostCard(post)
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-    }
-}
+import coil.compose.rememberImagePainter
+import com.baha.mediasharingapp.data.model.Post
 
 @Composable
-fun PostCard(post: Post) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+fun FeedScreen(
+    posts: List<Post>,
+    onPostClick: (lat: Double, lng: Double) -> Unit
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier.padding(8.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = post.username, style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Image: ${post.imageUrl}")
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = post.caption)
+        items(posts) { post ->
+            Card(
+                modifier = Modifier
+                    .padding(4.dp)
+                    .clickable { onPostClick(post.lat, post.lng) }
+            ) {
+                Image(
+                    painter = rememberImagePainter(post.imagePath),
+                    contentDescription = post.caption,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                )
+            }
         }
     }
 }
