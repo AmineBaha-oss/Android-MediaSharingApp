@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.baha.mediasharingapp.data.PostRepository
 import com.baha.mediasharingapp.data.model.Post
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,55 +11,27 @@ import kotlinx.coroutines.launch
 
 class PostViewModel(
     private val repository: PostRepository,
-    private val userViewModel: UserViewModel? = null
+    private val userViewModel: UserViewModel // Reference to UserViewModel to get usernames
 ) : ViewModel() {
 
-    val posts = repository.getPosts()
-
-    // Cache for immediate access
-    private val _cachedPosts = MutableStateFlow<List<Post>>(emptyList())
-    val cachedPosts: StateFlow<List<Post>> = _cachedPosts.asStateFlow()
-
-    private val _userPosts = MutableStateFlow<List<Post>>(emptyList())
-    val userPosts: StateFlow<List<Post>> = _userPosts.asStateFlow()
-
-    private val _currentUser = MutableStateFlow<String?>(null)
-    val currentUser: StateFlow<String?> = _currentUser.asStateFlow()
-
-    // Map to store user IDs to usernames for display
-    private val userMap = mutableMapOf<Long, String>()
+    private val _posts = MutableStateFlow<List<Post>>(emptyList())
+    val posts: StateFlow<List<Post>> = _posts.asStateFlow()
 
     init {
-        // Add some default mappings
-        userMap[1L] = "john_doe"
-        userMap[2L] = "jane_smith"
-        userMap[3L] = "mike_wilson"
-
-        // Initialize cached posts
         refreshPosts()
     }
 
-    fun getUsernameForPost(userId: Long): String {
-        // First check our userViewModel
-        val user = userViewModel?.getUserById(userId)
-        if (user != null) {
-            return user.username
+    fun refreshPosts() {
+        viewModelScope.launch {
+            repository.getPosts().collect { newPosts ->
+                _posts.value = newPosts
+            }
         }
-
-        // Fall back to our local map
-        return userMap[userId] ?: "Unknown User"
-    }
-
-    fun setCurrentUser(username: String) {
-        _currentUser.value = username
-        loadUserPosts(username)
     }
 
     fun addPost(post: Post) {
         viewModelScope.launch {
             repository.addPost(post)
-            // Also add to userViewModel to ensure consistency
-            userViewModel?.addPost(post)
             refreshPosts()
         }
     }
@@ -68,8 +39,6 @@ class PostViewModel(
     fun updatePost(post: Post) {
         viewModelScope.launch {
             repository.updatePost(post)
-            // Also update in userViewModel to ensure consistency
-            userViewModel?.updatePost(post)
             refreshPosts()
         }
     }
@@ -77,44 +46,12 @@ class PostViewModel(
     fun deletePost(post: Post) {
         viewModelScope.launch {
             repository.deletePost(post)
-            // Also delete from userViewModel to ensure consistency
-            userViewModel?.deletePost(post)
             refreshPosts()
         }
     }
 
-    fun loadUserPosts(username: String) {
-        viewModelScope.launch {
-            repository.getPosts().collect { allPosts ->
-                _userPosts.value = allPosts
-            }
-        }
-    }
-
-    fun logoutUser() {
-        _currentUser.value = null
-        _userPosts.value = emptyList()
-    }
-
-    fun getPostById(postId: Long): Post? {
-        // First check the cached posts
-        val post = _cachedPosts.value.find { it.id == postId }
-        if (post != null) {
-            return post
-        }
-
-        // Then try all posts from UserViewModel
-        val allPosts = userViewModel?.getAllPosts() ?: emptyList()
-        return allPosts.find { it.id == postId }
-    }
-
-    fun refreshPosts() {
-        viewModelScope.launch {
-            repository.getPosts().collect {
-                _cachedPosts.value = it
-                // Update userViewModel posts to ensure consistency
-                userViewModel?.updateUserPostsAfterChange()
-            }
-        }
+    // Use UserViewModel to get username for post
+    fun getUsernameForPost(userId: Long): String {
+        return userViewModel.getUsernameById(userId)
     }
 }

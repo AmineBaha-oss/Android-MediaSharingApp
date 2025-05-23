@@ -1,17 +1,18 @@
 package com.baha.mediasharingapp
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,68 +24,29 @@ import coil.compose.rememberAsyncImagePainter
 import com.baha.mediasharingapp.data.model.Post
 import com.baha.mediasharingapp.viewmodel.PostViewModel
 import com.baha.mediasharingapp.viewmodel.UserViewModel
-import androidx.compose.foundation.background
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen(
     navController: NavController,
     viewModel: PostViewModel,
     userViewModel: UserViewModel
 ) {
-    val posts by viewModel.posts.collectAsState(initial = emptyList())
-    val allPosts = userViewModel.getAllPosts()
+    val posts by userViewModel.allPosts.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Feed", color = MaterialTheme.colorScheme.onPrimary) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate(Screen.Post.route) },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Create Post",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-    ) { padding ->
-        if (allPosts.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No posts yet. Create your first post!")
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
-            ) {
-                items(allPosts) { post ->
-                    PostCard(
-                        post = post,
-                        viewModel = viewModel,
-                        onClick = {
-                            navController.navigate("${Screen.PostDetail.route}/${post.id}")
-                        }
-                    )
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(posts) { post ->
+            PostCard(
+                post = post,
+                username = userViewModel.getUsernameById(post.userId), // Use getUsernameById here
+                onPostClick = {
+                    navController.navigate("${Screen.PostDetail.route}/${post.id}")
                 }
-            }
+            )
         }
     }
 }
@@ -92,25 +54,27 @@ fun FeedScreen(
 @Composable
 fun PostCard(
     post: Post,
-    viewModel: PostViewModel,
-    onClick: () -> Unit
+    username: String,
+    onPostClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp)
+            .clickable(onClick = onPostClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // User info
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // User info row
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp)
             ) {
-                val username = viewModel.getUsernameForPost(post.userId)
+                // Profile picture placeholder
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
@@ -123,7 +87,6 @@ fun PostCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = username,
-                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -134,8 +97,7 @@ fun PostCard(
                 contentDescription = "Post image",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .height(200.dp),
                 contentScale = ContentScale.Crop
             )
 
@@ -162,7 +124,7 @@ fun PostCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = post.locationName,
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }

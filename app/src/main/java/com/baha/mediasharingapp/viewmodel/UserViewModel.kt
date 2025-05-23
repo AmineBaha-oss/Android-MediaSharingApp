@@ -2,7 +2,6 @@ package com.baha.mediasharingapp.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.baha.mediasharingapp.data.model.DummyPostRepository
 import com.baha.mediasharingapp.data.model.Post
 import com.baha.mediasharingapp.data.model.User
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,11 +10,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class UserViewModel : ViewModel() {
-    // User authentication state
     private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
-    // Current logged-in user
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
@@ -40,7 +37,21 @@ class UserViewModel : ViewModel() {
     // Map of location names
     private val locationNames = mutableMapOf<Pair<Double, Double>, String>()
 
+    // Store registered users
+    private val registeredUsers = mutableMapOf<Long, User>()
+
     init {
+        // Add pre-defined users to registered users map
+        val predefinedUsers = listOf(
+            User(id = 1, username = "john_doe", email = "john@example.com", password = "password", bio = "Photography enthusiast exploring the world one photo at a time."),
+            User(id = 2, username = "jane_smith", email = "jane@example.com", password = "password", bio = "Travel blogger and coffee lover. Always looking for the next adventure."),
+            User(id = 3, username = "mike_wilson", email = "mike@example.com", password = "password", bio = "Tech geek and outdoor enthusiast. Coding by day, hiking by weekend.")
+        )
+
+        predefinedUsers.forEach { user ->
+            registeredUsers[user.id] = user
+        }
+
         // Add some sample posts
         val samplePosts = listOf(
             Post(
@@ -80,13 +91,11 @@ class UserViewModel : ViewModel() {
         _followingCount.value = 247
     }
 
-    fun login(username: String, password: String): Boolean {
-        // Simple authentication logic (would be replaced with actual authentication)
-        val user = when {
-            username == "john_doe" && password == "password" -> getUserById(1)
-            username == "jane_smith" && password == "password" -> getUserById(2)
-            username == "mike_wilson" && password == "password" -> getUserById(3)
-            else -> null
+    fun login(usernameOrEmail: String, password: String): Boolean {
+        // Check both username and email for all users
+        val user = registeredUsers.values.find { user ->
+            (user.username == usernameOrEmail || user.email == usernameOrEmail) &&
+                    user.password == password
         }
 
         return if (user != null) {
@@ -107,14 +116,20 @@ class UserViewModel : ViewModel() {
 
     // New method for user signup
     fun signup(username: String, email: String, password: String): Boolean {
-        // Simple signup logic (would be replaced with actual authentication)
+        // Simple signup logic
         if (username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
-            _currentUser.value = User(
-                id = generateNextUserId(),
+            val newUserId = generateNextUserId()
+            val newUser = User(
+                id = newUserId,
                 username = username,
                 email = email,
                 password = password
             )
+
+            // Store the new user
+            registeredUsers[newUserId] = newUser
+
+            _currentUser.value = newUser
             _isLoggedIn.value = true
             refreshUserPosts()
             return true
@@ -125,28 +140,29 @@ class UserViewModel : ViewModel() {
     // New method for updating user profile
     fun updateUserProfile(username: String, email: String, bio: String): Boolean {
         val currentUser = _currentUser.value ?: return false
-        _currentUser.value = currentUser.copy(
+        val updatedUser = currentUser.copy(
             username = username,
             email = email,
             bio = bio
         )
+
+        // Update in registered users map
+        registeredUsers[currentUser.id] = updatedUser
+        _currentUser.value = updatedUser
         return true
     }
 
     private fun generateNextUserId(): Long {
-        // In a real app, this would be handled by the backend
-        // For this example, we'll just use a simple incrementing ID
-        return 4L // Assuming we already have users with ID 1, 2, and 3
+        return (registeredUsers.keys.maxOrNull() ?: 0) + 1
     }
 
     fun getUserById(userId: Long): User? {
-        // In a real app, this would query a database
-        return when (userId) {
-            1L -> User(id = 1, username = "john_doe", email = "john@example.com", password = "password", bio = "Photography enthusiast exploring the world one photo at a time.")
-            2L -> User(id = 2, username = "jane_smith", email = "jane@example.com", password = "password", bio = "Travel blogger and coffee lover. Always looking for the next adventure.")
-            3L -> User(id = 3, username = "mike_wilson", email = "mike@example.com", password = "password", bio = "Tech geek and outdoor enthusiast. Coding by day, hiking by weekend.")
-            else -> null
-        }
+        return registeredUsers[userId]
+    }
+
+    // Get username by user ID (used for posts)
+    fun getUsernameById(userId: Long): String {
+        return getUserById(userId)?.username ?: "Unknown User"
     }
 
     // Post management functions
