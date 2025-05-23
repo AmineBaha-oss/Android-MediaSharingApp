@@ -1,6 +1,5 @@
 package com.baha.mediasharingapp
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,20 +7,21 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.AsyncImage
 import com.baha.mediasharingapp.data.model.Post
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,10 +31,10 @@ fun ProfileScreen(
     username: String,
     email: String,
     bio: String,
+    followerCount: Int,
+    followingCount: Int,
     onLogout: () -> Unit,
-    navController: NavController,
-    followerCount: Int = 165,
-    followingCount: Int = 84
+    navController: NavController
 ) {
     Scaffold(
         topBar = {
@@ -46,14 +46,14 @@ fun ProfileScreen(
                 actions = {
                     IconButton(onClick = { navController.navigate(Screen.EditProfile.route) }) {
                         Icon(
-                            Icons.Default.Edit,
+                            imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Profile",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                     IconButton(onClick = onLogout) {
                         Icon(
-                            Icons.Default.ExitToApp,
+                            imageVector = Icons.Default.ExitToApp,
                             contentDescription = "Logout",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -61,19 +61,19 @@ fun ProfileScreen(
                 }
             )
         }
-    ) { paddingValues ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
                 .padding(16.dp)
         ) {
-            // Profile header with avatar and info
+            // User Info Section
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Profile picture (avatar)
+                // Profile picture (placeholder circle)
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -84,126 +84,116 @@ fun ProfileScreen(
                     Text(
                         text = username.firstOrNull()?.uppercase() ?: "U",
                         color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.headlineMedium
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // User info
+                // User stats
                 Column {
                     Text(
                         text = username,
-                        style = MaterialTheme.typography.titleLarge,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = email,
-                        style = MaterialTheme.typography.bodyMedium,
+                        fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-            }
 
-            // Bio
-            if (bio.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = bio,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "No bio added yet",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Bio
+                    if (bio.isNotEmpty()) {
+                        Text(
+                            text = bio,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(end = 16.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Stats
-            Card(
+            // Followers and Following
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    StatItem(label = "Posts", value = posts.size.toString())
-                    StatItem(label = "Followers", value = followerCount.toString())
-                    StatItem(label = "Following", value = followingCount.toString())
-                    StatItem(label = "Locations", value = posts.filter { it.locationName.isNotEmpty() }.size.toString())
+                    Text(
+                        text = posts.size.toString(),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(text = "Posts")
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = followerCount.toString(),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(text = "Followers")
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = followingCount.toString(),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(text = "Following")
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Posts grid
-            Text(
-                text = "Posts",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(vertical = 8.dp)
-            )
+            // Divider
+            Divider()
 
+            // User posts
             if (posts.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
+                        .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No posts yet",
+                        text = "No posts yet. Create your first post!",
+                        textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    contentPadding = PaddingValues(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
                     items(posts) { post ->
-                        Image(
-                            painter = rememberAsyncImagePainter(post.imagePath),
-                            contentDescription = "Post",
+                        AsyncImage(
+                            model = post.imagePath,
+                            contentDescription = "Post thumbnail",
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .aspectRatio(1f)
-                                .clip(RoundedCornerShape(4.dp))
                                 .clickable {
                                     navController.navigate("${Screen.PostDetail.route}/${post.id}")
-                                },
-                            contentScale = ContentScale.Crop
+                                }
                         )
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun StatItem(label: String, value: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }

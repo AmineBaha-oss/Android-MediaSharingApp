@@ -39,14 +39,19 @@ fun AppNavigation(
         }
 
         composable(Screen.Profile.route) {
-            val userPosts by userViewModel.userPosts.collectAsState()
+            userViewModel.refreshUserPosts()
+            val userPosts = userViewModel.userPosts.collectAsState(initial = emptyList()).value
             val currentUser = userViewModel.currentUser.collectAsState().value
+            val followerCount = userViewModel.followerCount.collectAsState().value
+            val followingCount = userViewModel.followingCount.collectAsState().value
 
             ProfileScreen(
                 posts = userPosts,
                 username = currentUser?.username ?: "",
                 email = currentUser?.email ?: "",
                 bio = currentUser?.bio ?: "",
+                followerCount = followerCount,
+                followingCount = followingCount,
                 onLogout = {
                     userViewModel.logout()
                     navController.navigate(Screen.Login.route) {

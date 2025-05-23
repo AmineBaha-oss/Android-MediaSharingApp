@@ -29,6 +29,14 @@ class DummyPostRepository(
         userPostsFlow.value = allPosts.filter { it.userId == userId }
     }
 
+    override suspend fun updatePost(post: Post) {
+        val index = allPosts.indexOfFirst { it.id == post.id }
+        if (index >= 0) {
+            allPosts[index] = post
+            userPostsFlow.value = allPosts.filter { it.userId == userId }
+        }
+    }
+
     override suspend fun deletePost(post: Post) {
         allPosts.removeIf { it.id == post.id }
         userPostsFlow.value = allPosts.filter { it.userId == userId }

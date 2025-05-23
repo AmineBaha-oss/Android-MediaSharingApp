@@ -59,8 +59,17 @@ class PostViewModel(
     fun addPost(post: Post) {
         viewModelScope.launch {
             repository.addPost(post)
-            // Update both view models to ensure consistency
-            userViewModel?.updateUserPostsAfterChange()
+            // Also add to userViewModel to ensure consistency
+            userViewModel?.addPost(post)
+            refreshPosts()
+        }
+    }
+
+    fun updatePost(post: Post) {
+        viewModelScope.launch {
+            repository.updatePost(post)
+            // Also update in userViewModel to ensure consistency
+            userViewModel?.updatePost(post)
             refreshPosts()
         }
     }
@@ -68,8 +77,8 @@ class PostViewModel(
     fun deletePost(post: Post) {
         viewModelScope.launch {
             repository.deletePost(post)
-            // Update both view models to ensure consistency
-            userViewModel?.updateUserPostsAfterChange()
+            // Also delete from userViewModel to ensure consistency
+            userViewModel?.deletePost(post)
             refreshPosts()
         }
     }
@@ -103,6 +112,8 @@ class PostViewModel(
         viewModelScope.launch {
             repository.getPosts().collect {
                 _cachedPosts.value = it
+                // Update userViewModel posts to ensure consistency
+                userViewModel?.updateUserPostsAfterChange()
             }
         }
     }
