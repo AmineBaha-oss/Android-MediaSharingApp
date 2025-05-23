@@ -37,6 +37,8 @@ class UserViewModel : ViewModel() {
 
     private val userPostsMap = mutableMapOf<Long, MutableList<Post>>()
 
+    private val userLikedPosts = mutableMapOf<Long, MutableSet<Long>>()
+
     private var lastUserId = 0L
 
     private var lastPostId = 0L
@@ -76,7 +78,6 @@ class UserViewModel : ViewModel() {
             )
         )
 
-        // Add some dummy posts
         addDummyPosts()
     }
 
@@ -176,7 +177,6 @@ class UserViewModel : ViewModel() {
             return false
         }
 
-        // New users start with 0 followers and following
         val newUser = User(
             id = ++lastUserId,
             username = username,
@@ -226,7 +226,6 @@ class UserViewModel : ViewModel() {
             bio = bio
         )
 
-        // Update in users list
         val index = users.indexOfFirst { it.id == currentUser.id }
         if (index >= 0) {
             users[index] = updatedUser
@@ -289,5 +288,43 @@ class UserViewModel : ViewModel() {
 
     fun getLocationName(lat: Double, lng: Double): String? {
         return locationNameCache[Pair(lat, lng)]
+    }
+
+    fun likePost(postId: Long) {
+        val currentUserId = _currentUser.value?.id ?: return
+
+        for ((userId, posts) in userPostsMap) {
+            val postIndex = posts.indexOfFirst { it.id == postId }
+            if (postIndex >= 0) {
+                val post = posts[postIndex]
+
+                val userLikes = userLikedPosts.getOrPut(currentUserId) { mutableSetOf() }
+
+                if (postId !in userLikes) {
+                    val updatedPost = post.copy(likesCount = post.likesCount + 1)
+                    posts[postIndex] = updatedPost
+                    userLikes.add(postId)
+                } else {
+                    val updatedPost = post.copy(likesCount = maxOf(0, post.likesCount - 1))
+                    posts[postIndex] = updatedPost
+                    userLikes.remove(postId)
+                }
+
+                updateAllPosts()
+                refreshUserPosts()
+                break
+            }
+        }
+    }
+
+    fun isPostLiked(postId: Long): Boolean {
+        val currentUserId = _currentUser.value?.id ?: return false
+        val userLikes = userLikedPosts[currentUserId] ?: return false
+        return postId in userLikes
+    }
+
+    fun getUsernameForPost(userId: Long): String {
+        val user = getUserById(userId)
+        return user?.username ?: "Unknown User"
     }
 }

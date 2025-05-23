@@ -12,5 +12,6 @@ data class Post(
     val lat: Double = 0.0,
     val lng: Double = 0.0,
     val userId: Long = 0,
-    val locationName: String = ""
+    val locationName: String = "",
+    val likesCount: Int = 0
 )

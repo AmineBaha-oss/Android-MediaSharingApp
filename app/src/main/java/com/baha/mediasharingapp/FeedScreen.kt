@@ -1,7 +1,7 @@
 package com.baha.mediasharingapp
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,25 +9,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.baha.mediasharingapp.data.model.Post
 import com.baha.mediasharingapp.viewmodel.PostViewModel
 import com.baha.mediasharingapp.viewmodel.UserViewModel
-import androidx.compose.runtime.collectAsState
-import androidx.compose.foundation.background
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,195 +34,164 @@ fun FeedScreen(
     viewModel: PostViewModel,
     userViewModel: UserViewModel
 ) {
-    val context = LocalContext.current
-    val allPosts = userViewModel.allPosts.collectAsState().value
-    val isLoggedIn = userViewModel.isLoggedIn.collectAsState().value
-    val currentUser = userViewModel.currentUser.collectAsState().value
-
-    // Make sure to refresh posts whenever screen is shown
-    LaunchedEffect(Unit) {
-        userViewModel.updateUserPostsAfterChange()
-        viewModel.refreshPosts()
-    }
+    val posts = userViewModel.getAllPosts()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Social Feed", color = MaterialTheme.colorScheme.onPrimary) },
+                title = { Text("Feed", color = MaterialTheme.colorScheme.onPrimary) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             )
         }
     ) { padding ->
-        if (allPosts.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("No posts to display")
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = {
-                        userViewModel.updateUserPostsAfterChange()
-                        viewModel.refreshPosts()
-                        Toast.makeText(context, "Refreshing posts...", Toast.LENGTH_SHORT).show()
-                    }) {
-                        Text("Refresh")
-                    }
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
-            ) {
-                items(allPosts) { post ->
-                    PostCard(
-                        post = post,
-                        username = viewModel.getUsernameForPost(post.userId),
-                        onPostClick = {
-                            navController.navigate("${Screen.PostDetail.route}/${post.id}")
-                        },
-                        onLocationClick = {
-                            navController.navigate("map/${post.id}")
-                        },
-                        onMenuClick = { showOptions ->
-                            if (isLoggedIn && currentUser?.id == post.userId) {
-                                navController.navigate("${Screen.EditPost.route}/${post.id}")
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "You can only edit your own posts",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
-                    )
-                }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            items(posts) { post ->
+                PostItem(
+                    post = post,
+                    onPostClick = {
+                        navController.navigate("${Screen.PostDetail.route}/${post.id}")
+                    },
+                    userViewModel = userViewModel,
+                    viewModel = viewModel
+                )
             }
         }
     }
 }
 
 @Composable
-fun PostCard(
+fun PostItem(
     post: Post,
-    username: String,
     onPostClick: () -> Unit,
-    onLocationClick: () -> Unit,
-    onMenuClick: (Boolean) -> Unit
+    userViewModel: UserViewModel,
+    viewModel: PostViewModel
 ) {
-    var showMenu by remember { mutableStateOf(false) }
+    val username = viewModel.getUsernameForPost(post.userId)
+    val isLiked = remember { mutableStateOf(userViewModel.isPostLiked(post.id)) }
+    val likeCount = remember { mutableStateOf(post.likesCount) }
+
+    LaunchedEffect(post.id) {
+        isLiked.value = userViewModel.isPostLiked(post.id)
+        likeCount.value = post.likesCount
+    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable(onClick = onPostClick),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // User info row
+        Column(
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = username.take(1).uppercase(),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = username,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        text = username.take(1).uppercase(),
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
 
-                // Menu icon
-                Box {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More options"
-                        )
-                    }
+                Spacer(modifier = Modifier.width(8.dp))
 
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Edit Post") },
-                            onClick = {
-                                onMenuClick(true)
-                                showMenu = false
-                            }
-                        )
-                    }
-                }
+                Text(
+                    text = username,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
-            // Post image
             Image(
                 painter = rememberAsyncImagePainter(post.imagePath),
                 contentDescription = "Post image",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(280.dp),
+                    .height(250.dp),
                 contentScale = ContentScale.Crop
             )
 
-            // Post content
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    IconButton(
+                        onClick = {
+                            isLiked.value = !isLiked.value
+                            likeCount.value = if (isLiked.value) {
+                                likeCount.value + 1
+                            } else {
+                                maxOf(0, likeCount.value - 1)
+                            }
+                            userViewModel.likePost(post.id)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (isLiked.value) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = "Like",
+                            tint = if (isLiked.value) Color.Red else LocalContentColor.current
+                        )
+                    }
+
+                    Text(
+                        text = "${likeCount.value} likes",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
                 Text(
                     text = post.caption,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(vertical = 4.dp)
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
 
                 if (post.locationName.isNotEmpty()) {
                     Row(
-                        modifier = Modifier.clickable(onClick = onLocationClick),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(vertical = 4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = "Location",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
                         )
+
                         Spacer(modifier = Modifier.width(4.dp))
+
                         Text(
                             text = post.locationName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                TextButton(onClick = onPostClick) {
+                    Text("View Details")
                 }
             }
         }
