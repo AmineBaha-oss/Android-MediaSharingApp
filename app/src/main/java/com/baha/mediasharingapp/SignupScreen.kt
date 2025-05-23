@@ -21,6 +21,7 @@ fun SignupScreen(
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
@@ -73,6 +74,19 @@ fun SignupScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = confirmPassword,
+            onValueChange = {
+                confirmPassword = it
+                errorMessage = null
+            },
+            label = { Text("Confirm Password") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+
         errorMessage?.let {
             Text(
                 text = it,
@@ -91,19 +105,21 @@ fun SignupScreen(
                     errorMessage = "Email is required"
                 } else if (password.isBlank()) {
                     errorMessage = "Password is required"
+                } else if (password != confirmPassword) {
+                    errorMessage = "Passwords do not match"
                 } else {
-                    if (userViewModel.register(username, email, password)) {
-                        Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
+                    if (userViewModel.signup(username, email, password)) {
+                        Toast.makeText(context, "Account created successfully!", Toast.LENGTH_SHORT).show()
                         NotificationHelper.notify(
                             context,
-                            "Welcome!",
+                            "Welcome to Media Sharing App",
                             "Your account has been created successfully."
                         )
                         navController.navigate(Screen.Feed.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
+                            popUpTo(navController.graph.id) { inclusive = true }
                         }
                     } else {
-                        errorMessage = "Email already in use"
+                        errorMessage = "Username or email already exists"
                     }
                 }
             },
