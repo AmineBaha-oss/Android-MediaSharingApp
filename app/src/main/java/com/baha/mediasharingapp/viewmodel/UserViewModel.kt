@@ -13,46 +13,35 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class UserViewModel : ViewModel() {
-    // User authentication state
     private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
 
-    // Current user
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
-    // User posts
     private val _userPosts = MutableStateFlow<List<Post>>(emptyList())
     val userPosts: StateFlow<List<Post>> = _userPosts.asStateFlow()
 
-    // All posts for feed
     private val _allPosts = MutableStateFlow<List<Post>>(mutableListOf())
     val allPosts: StateFlow<List<Post>> = _allPosts.asStateFlow()
 
-    // Follower and following counts
     private val _followerCount = MutableStateFlow(0)
     val followerCount: StateFlow<Int> = _followerCount.asStateFlow()
 
     private val _followingCount = MutableStateFlow(0)
     val followingCount: StateFlow<Int> = _followingCount.asStateFlow()
 
-    // Location name cache
     private val locationNameCache = mutableMapOf<Pair<Double, Double>, String>()
 
-    // User database (simulated)
     private val users = mutableListOf<User>()
 
-    // Post storage
     private val userPostsMap = mutableMapOf<Long, MutableList<Post>>()
 
-    // Last assigned user ID
     private var lastUserId = 0L
 
-    // Last assigned post ID
     private var lastPostId = 0L
 
     init {
-        // Add some pre-made users with random follower and following counts
         addUser(
             User(
                 id = ++lastUserId,
@@ -92,10 +81,8 @@ class UserViewModel : ViewModel() {
     }
 
     private fun addDummyPosts() {
-        // Add some dummy posts for pre-made users
         var postId = 0L
 
-        // Posts for John Doe
         userPostsMap[1L] = mutableListOf(
             Post(
                 id = ++postId,
@@ -117,7 +104,6 @@ class UserViewModel : ViewModel() {
             )
         )
 
-        // Posts for Jane Smith
         userPostsMap[2L] = mutableListOf(
             Post(
                 id = ++postId,
@@ -130,7 +116,6 @@ class UserViewModel : ViewModel() {
             )
         )
 
-        // Posts for Mike Wilson
         userPostsMap[3L] = mutableListOf(
             Post(
                 id = ++postId,
@@ -163,7 +148,6 @@ class UserViewModel : ViewModel() {
 
         lastPostId = postId
 
-        // Update all posts
         updateAllPosts()
     }
 

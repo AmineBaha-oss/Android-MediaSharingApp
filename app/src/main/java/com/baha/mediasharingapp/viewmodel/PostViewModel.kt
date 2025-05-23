@@ -17,7 +17,6 @@ class PostViewModel(
 
     val posts = repository.getPosts()
 
-    // Cache for immediate access
     private val _cachedPosts = MutableStateFlow<List<Post>>(emptyList())
     val cachedPosts: StateFlow<List<Post>> = _cachedPosts.asStateFlow()
 
@@ -27,27 +26,22 @@ class PostViewModel(
     private val _currentUser = MutableStateFlow<String?>(null)
     val currentUser: StateFlow<String?> = _currentUser.asStateFlow()
 
-    // Map to store user IDs to usernames for display
     private val userMap = mutableMapOf<Long, String>()
 
     init {
-        // Add some default mappings
         userMap[1L] = "john_doe"
         userMap[2L] = "jane_smith"
         userMap[3L] = "mike_wilson"
 
-        // Initialize cached posts
         refreshPosts()
     }
 
     fun getUsernameForPost(userId: Long): String {
-        // First check our userViewModel
         val user = userViewModel?.getUserById(userId)
         if (user != null) {
             return user.username
         }
 
-        // Fall back to our local map
         return userMap[userId] ?: "Unknown User"
     }
 
@@ -58,7 +52,6 @@ class PostViewModel(
 
     fun addPost(post: Post) {
         viewModelScope.launch {
-            // First make sure we're using userViewModel if available
             if (userViewModel != null) {
                 userViewModel.addPost(post)
             } else {
@@ -104,13 +97,11 @@ class PostViewModel(
     }
 
     fun getPostById(postId: Long): Post? {
-        // First check the cached posts
         val post = _cachedPosts.value.find { it.id == postId }
         if (post != null) {
             return post
         }
 
-        // Then try all posts from UserViewModel
         val allPosts = userViewModel?.getAllPosts() ?: emptyList()
         return allPosts.find { it.id == postId }
     }

@@ -31,7 +31,6 @@ import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import java.io.File
 import kotlin.random.Random
 
-// Placeholder image URL
 const val PLACEHOLDER_IMAGE_URL = "https://via.placeholder.com/400x300/6200EE/FFFFFF?text=Image+Placeholder"
 const val DEFAULT_LINKED_IMAGE = "https://picsum.photos/800/600"
 
@@ -52,7 +51,6 @@ fun CreatePostScreen(
     var showLinkDialog by remember { mutableStateOf(false) }
     var imageLink by remember { mutableStateOf("") }
 
-    // Make sure Places API is initialized
     LaunchedEffect(Unit) {
         try {
             if (!com.google.android.libraries.places.api.Places.isInitialized()) {
@@ -96,7 +94,6 @@ fun CreatePostScreen(
                         lng = latLng.longitude
                         locationName = place.name ?: place.address ?: "Selected Location"
 
-                        // Store the location name
                         userViewModel.addLocationName(lat, lng, locationName)
                     }
                 } catch (e: Exception) {
@@ -158,7 +155,6 @@ fun CreatePostScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Show selected image
             if (imageUri != null) {
                 Image(
                     painter = rememberAsyncImagePainter(imageUri),
@@ -181,7 +177,6 @@ fun CreatePostScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Caption field
             OutlinedTextField(
                 value = caption,
                 onValueChange = { caption = it },
@@ -191,7 +186,6 @@ fun CreatePostScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Image selection options
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -227,7 +221,6 @@ fun CreatePostScreen(
                             takePictureLauncher.launch(uri)
                         } catch (e: Exception) {
                             Toast.makeText(context, "Camera error: ${e.message}", Toast.LENGTH_SHORT).show()
-                            // Use placeholder as fallback
                             imageUri = Uri.parse(PLACEHOLDER_IMAGE_URL)
                         }
                     },
