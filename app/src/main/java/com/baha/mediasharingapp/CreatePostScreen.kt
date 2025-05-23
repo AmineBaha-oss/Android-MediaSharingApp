@@ -238,7 +238,7 @@ fun CreatePostScreen(
                         contentDescription = "Camera"
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Camera")
+                    Text("Cam", style = MaterialTheme.typography.bodySmall)
                 }
 
                 Button(

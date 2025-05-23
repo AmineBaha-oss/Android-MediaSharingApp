@@ -241,6 +241,7 @@ fun EditPostScreen(
                             takePictureLauncher.launch(uri)
                         } catch (e: Exception) {
                             Toast.makeText(context, "Camera error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            imageUri = Uri.parse(PLACEHOLDER_IMAGE_URL)
                         }
                     },
                     modifier = Modifier.weight(1f)
@@ -250,7 +251,7 @@ fun EditPostScreen(
                         contentDescription = "Camera"
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Camera")
+                    Text("Cam", style = MaterialTheme.typography.bodySmall)
                 }
 
                 Button(

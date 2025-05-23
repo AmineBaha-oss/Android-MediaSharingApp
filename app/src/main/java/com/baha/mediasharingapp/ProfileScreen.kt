@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.baha.mediasharingapp.data.model.Post
+import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,10 +71,10 @@ fun ProfileScreen(
         ) {
             // User Info Section
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                // Profile picture (placeholder circle)
+                // Avatar circle
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -82,36 +83,34 @@ fun ProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = username.firstOrNull()?.uppercase() ?: "U",
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold
+                        text = username.take(1).uppercase(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // User stats
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = username,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = email,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Bio
                     if (bio.isNotEmpty()) {
                         Text(
                             text = bio,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(end = 16.dp)
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
