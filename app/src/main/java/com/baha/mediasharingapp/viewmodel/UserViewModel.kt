@@ -1,27 +1,32 @@
 package com.baha.mediasharingapp.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.baha.mediasharingapp.data.model.DummyPostRepository
 import com.baha.mediasharingapp.data.model.Post
 import com.baha.mediasharingapp.data.model.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 class UserViewModel : ViewModel() {
+    // User authentication state
     private val _isLoggedIn = MutableStateFlow(false)
-    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
+    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
 
+    // Current user
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
-    // User's posts
+    // User posts
     private val _userPosts = MutableStateFlow<List<Post>>(emptyList())
     val userPosts: StateFlow<List<Post>> = _userPosts.asStateFlow()
 
     // All posts for feed
-    private val _allPosts = MutableStateFlow<List<Post>>(emptyList())
+    private val _allPosts = MutableStateFlow<List<Post>>(mutableListOf())
     val allPosts: StateFlow<List<Post>> = _allPosts.asStateFlow()
 
     // Follower and following counts
@@ -31,81 +36,177 @@ class UserViewModel : ViewModel() {
     private val _followingCount = MutableStateFlow(0)
     val followingCount: StateFlow<Int> = _followingCount.asStateFlow()
 
-    // Posts storage
-    private val postsList = mutableListOf<Post>()
+    // Location name cache
+    private val locationNameCache = mutableMapOf<Pair<Double, Double>, String>()
 
-    // Map of location names
-    private val locationNames = mutableMapOf<Pair<Double, Double>, String>()
+    // User database (simulated)
+    private val users = mutableListOf<User>()
 
-    // Store registered users
-    private val registeredUsers = mutableMapOf<Long, User>()
+    // Post storage
+    private val userPostsMap = mutableMapOf<Long, MutableList<Post>>()
+
+    // Last assigned user ID
+    private var lastUserId = 0L
+
+    // Last assigned post ID
+    private var lastPostId = 0L
 
     init {
-        // Add pre-defined users to registered users map
-        val predefinedUsers = listOf(
-            User(id = 1, username = "john_doe", email = "john@example.com", password = "password", bio = "Photography enthusiast exploring the world one photo at a time."),
-            User(id = 2, username = "jane_smith", email = "jane@example.com", password = "password", bio = "Travel blogger and coffee lover. Always looking for the next adventure."),
-            User(id = 3, username = "mike_wilson", email = "mike@example.com", password = "password", bio = "Tech geek and outdoor enthusiast. Coding by day, hiking by weekend.")
+        // Add some pre-made users with random follower and following counts
+        addUser(
+            User(
+                id = ++lastUserId,
+                username = "john_doe",
+                email = "john@example.com",
+                password = "password",
+                bio = "I love photography and travel",
+                followerCount = Random.nextInt(50, 500),
+                followingCount = Random.nextInt(20, 300)
+            )
         )
-
-        predefinedUsers.forEach { user ->
-            registeredUsers[user.id] = user
-        }
-
-        // Add some sample posts
-        val samplePosts = listOf(
-            Post(
-                id = 1,
-                caption = "Beautiful sunset at the beach",
-                imagePath = "https://picsum.photos/id/1/800/600",
-                lat = 37.7749,
-                lng = -122.4194,
-                userId = 1,
-                locationName = "San Francisco"
-            ),
-            Post(
-                id = 2,
-                caption = "Hiking in the mountains",
-                imagePath = "https://picsum.photos/id/10/800/600",
-                lat = 40.7128,
-                lng = -74.0060,
-                userId = 2,
-                locationName = "New York"
-            ),
-            Post(
-                id = 3,
-                caption = "City skyline",
-                imagePath = "https://picsum.photos/id/20/800/600",
-                lat = 34.0522,
-                lng = -118.2437,
-                userId = 3,
-                locationName = "Los Angeles"
+        addUser(
+            User(
+                id = ++lastUserId,
+                username = "jane_smith",
+                email = "jane@example.com",
+                password = "password",
+                bio = "Adventure seeker and nature lover",
+                followerCount = Random.nextInt(100, 1000),
+                followingCount = Random.nextInt(50, 400)
+            )
+        )
+        addUser(
+            User(
+                id = ++lastUserId,
+                username = "mike_wilson",
+                email = "mike@example.com",
+                password = "password",
+                bio = "Professional photographer",
+                followerCount = Random.nextInt(200, 2000),
+                followingCount = Random.nextInt(150, 500)
             )
         )
 
-        postsList.addAll(samplePosts)
-        _allPosts.value = postsList.toList()
-
-        // Set example follower/following counts
-        _followerCount.value = 125
-        _followingCount.value = 247
+        // Add some dummy posts
+        addDummyPosts()
     }
 
-    fun login(usernameOrEmail: String, password: String): Boolean {
-        // Check both username and email for all users
-        val user = registeredUsers.values.find { user ->
-            (user.username == usernameOrEmail || user.email == usernameOrEmail) &&
-                    user.password == password
-        }
+    private fun addDummyPosts() {
+        // Add some dummy posts for pre-made users
+        var postId = 0L
 
-        return if (user != null) {
+        // Posts for John Doe
+        userPostsMap[1L] = mutableListOf(
+            Post(
+                id = ++postId,
+                caption = "Beautiful sunset at the beach",
+                imagePath = "https://picsum.photos/id/10/800/800",
+                lat = 37.7749,
+                lng = -122.4194,
+                userId = 1L,
+                locationName = "San Francisco"
+            ),
+            Post(
+                id = ++postId,
+                caption = "Hiking in the mountains",
+                imagePath = "https://picsum.photos/id/29/800/800",
+                lat = 36.778259,
+                lng = -119.417931,
+                userId = 1L,
+                locationName = "Sierra Nevada"
+            )
+        )
+
+        // Posts for Jane Smith
+        userPostsMap[2L] = mutableListOf(
+            Post(
+                id = ++postId,
+                caption = "City lights at night",
+                imagePath = "https://picsum.photos/id/42/800/800",
+                lat = 40.7128,
+                lng = -74.0060,
+                userId = 2L,
+                locationName = "New York City"
+            )
+        )
+
+        // Posts for Mike Wilson
+        userPostsMap[3L] = mutableListOf(
+            Post(
+                id = ++postId,
+                caption = "Wildlife photography",
+                imagePath = "https://picsum.photos/id/65/800/800",
+                lat = 27.9881,
+                lng = 86.9250,
+                userId = 3L,
+                locationName = "National Park"
+            ),
+            Post(
+                id = ++postId,
+                caption = "Architecture study",
+                imagePath = "https://picsum.photos/id/72/800/800",
+                lat = 48.8566,
+                lng = 2.3522,
+                userId = 3L,
+                locationName = "Paris"
+            ),
+            Post(
+                id = ++postId,
+                caption = "Street art",
+                imagePath = "https://picsum.photos/id/83/800/800",
+                lat = 51.5072,
+                lng = 0.1276,
+                userId = 3L,
+                locationName = "London"
+            )
+        )
+
+        lastPostId = postId
+
+        // Update all posts
+        updateAllPosts()
+    }
+
+    private fun updateAllPosts() {
+        val allPosts = mutableListOf<Post>()
+        userPostsMap.values.forEach { posts ->
+            allPosts.addAll(posts)
+        }
+        _allPosts.value = allPosts.sortedByDescending { it.id }
+    }
+
+    fun login(email: String, password: String): Boolean {
+        val user = users.find { it.email == email && it.password == password }
+        if (user != null) {
             _currentUser.value = user
             _isLoggedIn.value = true
             refreshUserPosts()
-            true
-        } else {
-            false
+            updateFollowerCounts()
+            return true
         }
+        return false
+    }
+
+    fun signup(username: String, email: String, password: String): Boolean {
+        if (users.any { it.email == email }) {
+            return false
+        }
+
+        // New users start with 0 followers and following
+        val newUser = User(
+            id = ++lastUserId,
+            username = username,
+            email = email,
+            password = password,
+            bio = "",
+            followerCount = 0,
+            followingCount = 0
+        )
+        addUser(newUser)
+        _currentUser.value = newUser
+        _isLoggedIn.value = true
+        updateFollowerCounts()
+        return true
     }
 
     fun logout() {
@@ -114,30 +215,25 @@ class UserViewModel : ViewModel() {
         _userPosts.value = emptyList()
     }
 
-    // New method for user signup
-    fun signup(username: String, email: String, password: String): Boolean {
-        // Simple signup logic
-        if (username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
-            val newUserId = generateNextUserId()
-            val newUser = User(
-                id = newUserId,
-                username = username,
-                email = email,
-                password = password
-            )
-
-            // Store the new user
-            registeredUsers[newUserId] = newUser
-
-            _currentUser.value = newUser
-            _isLoggedIn.value = true
-            refreshUserPosts()
-            return true
-        }
-        return false
+    private fun addUser(user: User) {
+        users.add(user)
     }
 
-    // New method for updating user profile
+    fun getUserById(userId: Long): User? {
+        return users.find { it.id == userId }
+    }
+
+    fun refreshUserPosts() {
+        val userId = _currentUser.value?.id ?: return
+        _userPosts.value = userPostsMap[userId] ?: emptyList()
+    }
+
+    private fun updateFollowerCounts() {
+        val user = _currentUser.value ?: return
+        _followerCount.value = user.followerCount
+        _followingCount.value = user.followingCount
+    }
+
     fun updateUserProfile(username: String, email: String, bio: String): Boolean {
         val currentUser = _currentUser.value ?: return false
         val updatedUser = currentUser.copy(
@@ -146,72 +242,68 @@ class UserViewModel : ViewModel() {
             bio = bio
         )
 
-        // Update in registered users map
-        registeredUsers[currentUser.id] = updatedUser
-        _currentUser.value = updatedUser
-        return true
+        // Update in users list
+        val index = users.indexOfFirst { it.id == currentUser.id }
+        if (index >= 0) {
+            users[index] = updatedUser
+            _currentUser.value = updatedUser
+            return true
+        }
+        return false
     }
 
-    private fun generateNextUserId(): Long {
-        return (registeredUsers.keys.maxOrNull() ?: 0) + 1
-    }
-
-    fun getUserById(userId: Long): User? {
-        return registeredUsers[userId]
-    }
-
-    // Get username by user ID (used for posts)
-    fun getUsernameById(userId: Long): String {
-        return getUserById(userId)?.username ?: "Unknown User"
-    }
-
-    // Post management functions
     fun getAllPosts(): List<Post> {
-        return postsList.toList()
-    }
-
-    fun refreshUserPosts() {
-        val userId = _currentUser.value?.id ?: return
-        _userPosts.value = postsList.filter { it.userId == userId }
-    }
-
-    fun updateUserPostsAfterChange() {
-        // Refresh both all posts and user-specific posts
-        _allPosts.value = postsList.toList()
-        refreshUserPosts()
+        return _allPosts.value
     }
 
     fun addPost(post: Post) {
-        viewModelScope.launch {
-            // Add to internal list
-            postsList.add(post)
-            updateUserPostsAfterChange()
+        val userId = _currentUser.value?.id ?: return
+        val userPosts = userPostsMap.getOrPut(userId) { mutableListOf() }
+
+        val postId = if (post.id == 0L) {
+            ++lastPostId
+        } else {
+            post.id
         }
+
+        val newPost = post.copy(id = postId, userId = userId)
+        userPosts.add(newPost)
+        refreshUserPosts()
+        updateAllPosts()
     }
 
     fun updatePost(post: Post) {
-        viewModelScope.launch {
-            val index = postsList.indexOfFirst { it.id == post.id }
-            if (index >= 0) {
-                postsList[index] = post
-                updateUserPostsAfterChange()
-            }
+        val userId = post.userId
+        val userPosts = userPostsMap[userId] ?: return
+
+        val index = userPosts.indexOfFirst { it.id == post.id }
+        if (index >= 0) {
+            userPosts[index] = post
+            refreshUserPosts()
+            updateAllPosts()
         }
     }
 
     fun deletePost(post: Post) {
-        viewModelScope.launch {
-            postsList.removeIf { it.id == post.id }
-            updateUserPostsAfterChange()
+        val userId = post.userId
+        val userPosts = userPostsMap[userId] ?: return
+
+        if (userPosts.removeIf { it.id == post.id }) {
+            refreshUserPosts()
+            updateAllPosts()
         }
     }
 
-    // Location management
-    fun addLocationName(lat: Double, lng: Double, name: String) {
-        locationNames[Pair(lat, lng)] = name
+    fun updateUserPostsAfterChange() {
+        refreshUserPosts()
+        updateAllPosts()
     }
 
-    fun getLocationName(lat: Double, lng: Double): String {
-        return locationNames[Pair(lat, lng)] ?: "Unknown Location"
+    fun addLocationName(lat: Double, lng: Double, name: String) {
+        locationNameCache[Pair(lat, lng)] = name
+    }
+
+    fun getLocationName(lat: Double, lng: Double): String? {
+        return locationNameCache[Pair(lat, lng)]
     }
 }

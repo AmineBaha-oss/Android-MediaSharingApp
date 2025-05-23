@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -29,6 +30,7 @@ fun MainScreen(
 ) {
     val mainNavController = rememberNavController()
     val currentRoute = mainNavController.currentBackStackEntryAsState().value?.destination?.route
+    val context = LocalContext.current
 
     Scaffold(
         bottomBar = {
@@ -118,7 +120,20 @@ fun MainScreen(
                             popUpTo(navController.graph.id) { inclusive = true }
                         }
                     },
-                    navController = mainNavController
+                    navController = mainNavController,
+                    onDeletePost = { post ->
+                        userViewModel.deletePost(post)
+                        postViewModel.deletePost(post)
+                        userViewModel.updateUserPostsAfterChange()
+                        postViewModel.refreshPosts()
+
+                        // Notify about deletion
+                        NotificationHelper.notify(
+                            context,
+                            "Post Deleted",
+                            "Your post has been deleted successfully."
+                        )
+                    }
                 )
             }
             composable(Screen.EditProfile.route) {
