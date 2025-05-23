@@ -1,7 +1,11 @@
-package com.baha.mediasharingapp
-
-sealed class Screen(val route: String, val title: String) {
-    object Signup: Screen("signup", "Welcome")
-    object Feed:   Screen("feed",   "Feed")
-    object Map:    Screen("map",    "Map")
+sealed class Screen(val route: String) {
+    object Feed : Screen("feed")
+    object Post : Screen("post")
+    object Map : Screen("map")
+    object Profile : Screen("profile")
+    object EditProfile : Screen("edit_profile")
+    object EditPost : Screen("edit_post")
+    object PostDetail : Screen("post_detail")
+    object Login : Screen("login")
+    object Signup : Screen("signup")
 }

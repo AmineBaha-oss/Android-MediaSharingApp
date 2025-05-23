@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">MediaSharingApp</string>
+    <string name="google_maps_key">AIzaSyA29c8jsCd71QO6KzdG5EP3hn3xLozsDts</string>
 </resources>

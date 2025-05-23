@@ -1,28 +1,45 @@
 package com.baha.mediasharingapp
 
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.baha.mediasharingapp.data.model.Post
+import com.baha.mediasharingapp.viewmodel.UserViewModel
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.CameraPositionState
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.*
 
 @Composable
-fun MapScreen(lat: Double, lng: Double) {
+fun MapScreen(
+    userViewModel: UserViewModel,
+    posts: List<Post>
+) {
+    val firstPostWithLocation = posts.firstOrNull { it.lat != 0.0 && it.lng != 0.0 }
+    val initialPosition = if (firstPostWithLocation != null) {
+        LatLng(firstPostWithLocation.lat, firstPostWithLocation.lng)
+    } else {
+        LatLng(40.7128, -74.0060)
+    }
+
     val cameraPositionState = rememberCameraPositionState {
-        position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(LatLng(lat, lng), 12f)
+        position = CameraPosition.fromLatLngZoom(initialPosition, 10f)
     }
 
     GoogleMap(
+        modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
-        modifier = Modifier.fillMaxSize()
+        uiSettings = MapUiSettings(zoomControlsEnabled = true)
     ) {
-        Marker(
-            state = MarkerState(position = LatLng(lat, lng)),
-            title = "Location"
-        )
+        posts.forEach { post ->
+            if (post.lat != 0.0 && post.lng != 0.0) {
+                val position = LatLng(post.lat, post.lng)
+                Marker(
+                    state = MarkerState(position = position),
+                    title = post.caption,
+                    snippet = post.locationName
+                )
+            }
+        }
     }
 }

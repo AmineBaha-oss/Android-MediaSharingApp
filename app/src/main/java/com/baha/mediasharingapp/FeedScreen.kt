@@ -1,42 +1,49 @@
 package com.baha.mediasharingapp
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Card
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import coil.compose.rememberImagePainter
+import androidx.navigation.NavController
 import com.baha.mediasharingapp.data.model.Post
+import com.baha.mediasharingapp.viewmodel.PostViewModel
+import com.baha.mediasharingapp.viewmodel.UserViewModel
+
 
 @Composable
 fun FeedScreen(
-    posts: List<Post>,
-    onPostClick: (lat: Double, lng: Double) -> Unit
+    navController: NavController,
+    viewModel: PostViewModel,
+    userViewModel: UserViewModel
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        modifier = Modifier.padding(8.dp)
-    ) {
-        items(posts) { post ->
+    val posts by viewModel.posts.collectAsState(initial = emptyList())
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Button(
+            onClick = { navController.navigate(Screen.Post.route) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Create New Post")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        posts.forEach { post ->
             Card(
                 modifier = Modifier
-                    .padding(4.dp)
-                    .clickable { onPostClick(post.lat, post.lng) }
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                onClick = {
+                    navController.navigate("${Screen.PostDetail.route}/${post.id}")
+                }
             ) {
-                Image(
-                    painter = rememberImagePainter(post.imagePath),
-                    contentDescription = post.caption,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                )
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(post.caption, style = MaterialTheme.typography.titleMedium)
+                    if (post.locationName.isNotEmpty()) {
+                        Text(post.locationName, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
             }
         }
     }

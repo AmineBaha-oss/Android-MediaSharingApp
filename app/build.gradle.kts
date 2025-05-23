@@ -2,7 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("kotlin-kapt")
+    id("com.google.devtools.ksp") version "1.9.22-1.0.17"
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -55,6 +56,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
+    implementation("androidx.compose.material:material-icons-extended:1.5.4")
     // Navigation (Compose)
     implementation("androidx.navigation:navigation-compose:2.6.0")
 
@@ -63,8 +65,8 @@ dependencies {
 
     // —— ROOM ——
     implementation("androidx.room:room-runtime:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
@@ -73,6 +75,7 @@ dependencies {
     implementation("com.google.android.libraries.places:places:3.2.0")
     implementation("com.google.android.gms:play-services-maps:18.1.0")
     implementation("com.google.maps.android:maps-compose:2.14.0")
+    implementation ("androidx.activity:activity-compose:1.8.2")
 
     // Mockito for unit tests
     testImplementation ("org.mockito:mockito-core:5.1.1"  )          // core Mockito API

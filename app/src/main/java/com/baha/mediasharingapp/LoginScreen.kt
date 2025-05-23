@@ -1,43 +1,109 @@
 package com.baha.mediasharingapp
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.baha.mediasharingapp.ui.Screen
+import com.baha.mediasharingapp.NotificationHelper
+import com.baha.mediasharingapp.viewmodel.UserViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(nav: NavController) {
+fun LoginScreen(
+    navController: NavController,
+    userViewModel: UserViewModel
+) {
     var email by remember { mutableStateOf("") }
-    var pw by remember { mutableStateOf("") }
-    var err by remember { mutableStateOf<String?>(null) }
+    var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     Column(
-        Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Text("Login", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(16.dp))
-        OutlinedTextField(email, { email = it; err = null }, label = { Text("Email") })
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(pw, { pw = it; err = null },
-            label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation()
+        Text(
+            "Welcome Back",
+            style = MaterialTheme.typography.headlineMedium
         )
-        Spacer(Modifier.height(16.dp))
-        Button({
-            if (email.isNotBlank() && pw.isNotBlank())
-                nav.navigate(Screen.Feed.route) { popUpTo(Screen.Login.route){ inclusive=true } }
-            else err = "Enter both fields"
-        }, Modifier.fillMaxWidth()) {
-            Text("Login")
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = {
+                email = it
+                errorMessage = null
+            },
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = {
+                password = it
+                errorMessage = null
+            },
+            label = { Text("Password") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        errorMessage?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
-        err?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        TextButton({ nav.navigate(Screen.Signup.route) }) {
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = {
+                if (email.isBlank()) {
+                    errorMessage = "Email is required"
+                } else if (password.isBlank()) {
+                    errorMessage = "Password is required"
+                } else {
+                    if (userViewModel.login(email, password)) {
+                        Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
+                        NotificationHelper.notify(
+                            context,
+                            "Welcome Back",
+                            "You have successfully logged in."
+                        )
+                        navController.navigate(Screen.Feed.route) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                        }
+                    } else {
+                        errorMessage = "Invalid email or password"
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Log In")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        TextButton(
+            onClick = { navController.navigate(Screen.Signup.route) },
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) {
             Text("Don't have an account? Sign up")
         }
     }

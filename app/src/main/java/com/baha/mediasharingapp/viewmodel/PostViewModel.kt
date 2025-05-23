@@ -5,41 +5,62 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.baha.mediasharingapp.data.PostRepository
 import com.baha.mediasharingapp.data.model.Post
-import kotlinx.coroutines.flow.SharingStarted
+import com.baha.mediasharingapp.data.model.User
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class PostViewModel(
-    private val repository: PostRepository
-) : ViewModel() {
+class PostViewModel(private val repository: PostRepository) : ViewModel() {
+    val posts = repository.getPosts()
 
-    // Expose a cold Flow of posts as a hot StateFlow in the VM scope
-    val posts: StateFlow<List<Post>> = repository
-        .getPosts()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Lazily,
-            initialValue = emptyList()
-        )
+    private val _userPosts = MutableStateFlow<List<Post>>(emptyList())
+    val userPosts: StateFlow<List<Post>> = _userPosts.asStateFlow()
 
-    // Helper to insert a new post
+    private val _currentUser = MutableStateFlow<String?>(null)
+    val currentUser: StateFlow<String?> = _currentUser.asStateFlow()
+
+    // Map to store user IDs to usernames for display
+    private val userMap = mutableMapOf<Long, String>()
+
+    init {
+        // Dummy data for users
+        userMap[1L] = "john_doe"
+        userMap[2L] = "jane_smith"
+        userMap[3L] = "mike_wilson"
+    }
+
+    fun getUsernameForPost(userId: Long): String {
+        return userMap[userId] ?: "Unknown User"
+    }
+
+    fun setCurrentUser(username: String) {
+        _currentUser.value = username
+        loadUserPosts(username)
+    }
+
     fun addPost(post: Post) {
         viewModelScope.launch {
             repository.addPost(post)
         }
     }
-}
 
-// Factory to create PostViewModel with our repository
-class PostViewModelFactory(
-    private val repository: PostRepository
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(PostViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return PostViewModel(repository) as T
+    fun deletePost(post: Post) {
+        viewModelScope.launch {
+            repository.deletePost(post)
         }
-        throw IllegalArgumentException("Unknown ViewModel class: $modelClass")
+    }
+
+    fun loadUserPosts(username: String) {
+        viewModelScope.launch {
+            repository.getPosts().collect { allPosts ->
+                _userPosts.value = allPosts
+            }
+        }
+    }
+
+    fun logoutUser() {
+        _currentUser.value = null
+        _userPosts.value = emptyList()
     }
 }
