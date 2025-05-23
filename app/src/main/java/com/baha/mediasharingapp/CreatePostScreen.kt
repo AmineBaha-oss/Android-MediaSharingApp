@@ -30,6 +30,9 @@ import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import java.io.File
 import kotlin.random.Random
 
+// Placeholder image URL
+const val PLACEHOLDER_IMAGE_URL = "https://via.placeholder.com/400x300/6200EE/FFFFFF?text=Image+Placeholder"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreatePostScreen(
@@ -39,11 +42,25 @@ fun CreatePostScreen(
 ) {
     val context = LocalContext.current
     var caption by remember { mutableStateOf("") }
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var imageUri by remember { mutableStateOf<Uri?>(Uri.parse(PLACEHOLDER_IMAGE_URL)) }
     var locationName by remember { mutableStateOf("") }
     var lat by remember { mutableStateOf(0.0) }
     var lng by remember { mutableStateOf(0.0) }
     var photoFile by remember { mutableStateOf<File?>(null) }
+
+    // Make sure Places API is initialized
+    LaunchedEffect(Unit) {
+        try {
+            if (!com.google.android.libraries.places.api.Places.isInitialized()) {
+                com.google.android.libraries.places.api.Places.initialize(
+                    context,
+                    context.getString(R.string.google_maps_key)
+                )
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error initializing Places API: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -68,14 +85,18 @@ fun CreatePostScreen(
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.let { intent ->
-                val place = Autocomplete.getPlaceFromIntent(intent)
-                place.latLng?.let { latLng ->
-                    lat = latLng.latitude
-                    lng = latLng.longitude
-                    locationName = place.name ?: place.address ?: "Selected Location"
+                try {
+                    val place = Autocomplete.getPlaceFromIntent(intent)
+                    place.latLng?.let { latLng ->
+                        lat = latLng.latitude
+                        lng = latLng.longitude
+                        locationName = place.name ?: place.address ?: "Selected Location"
 
-                    // Store the location name
-                    userViewModel.addLocationName(lat, lng, locationName)
+                        // Store the location name
+                        userViewModel.addLocationName(lat, lng, locationName)
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Error processing location: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -138,7 +159,9 @@ fun CreatePostScreen(
             ) {
                 Button(
                     onClick = {
-                        imagePickerLauncher.launch("image/*")
+                        // Use placeholder if gallery is empty
+                        Toast.makeText(context, "Using placeholder image", Toast.LENGTH_SHORT).show()
+                        imageUri = Uri.parse(PLACEHOLDER_IMAGE_URL)
                     },
                     modifier = Modifier.weight(1f)
                 ) {
@@ -169,6 +192,8 @@ fun CreatePostScreen(
                             takePictureLauncher.launch(uri)
                         } catch (e: Exception) {
                             Toast.makeText(context, "Camera error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            // Use placeholder as fallback
+                            imageUri = Uri.parse(PLACEHOLDER_IMAGE_URL)
                         }
                     },
                     modifier = Modifier.weight(1f)
@@ -184,10 +209,18 @@ fun CreatePostScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Location button
+            // Location button with safeguards
             Button(
                 onClick = {
                     try {
+                        if (!com.google.android.libraries.places.api.Places.isInitialized()) {
+                            Toast.makeText(context, "Places API not initialized. Using default location.", Toast.LENGTH_SHORT).show()
+                            locationName = "Default Location"
+                            lat = 37.7749
+                            lng = -122.4194
+                            return@Button
+                        }
+
                         val fields = listOf(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG, Place.Field.ADDRESS)
                         val intent = Autocomplete.IntentBuilder(
                             AutocompleteActivityMode.OVERLAY,
@@ -196,6 +229,10 @@ fun CreatePostScreen(
                         autocompleteLauncher.launch(intent)
                     } catch (e: Exception) {
                         Toast.makeText(context, "Error launching location picker: ${e.message}", Toast.LENGTH_SHORT).show()
+                        // Use default location as fallback
+                        locationName = "Default Location"
+                        lat = 37.7749
+                        lng = -122.4194
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -249,6 +286,7 @@ fun CreatePostScreen(
                     )
 
                     viewModel.addPost(newPost)
+                    viewModel.refreshPosts() // Explicitly refresh posts
 
                     NotificationHelper.notify(
                         context,

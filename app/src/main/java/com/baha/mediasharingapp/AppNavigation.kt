@@ -73,5 +73,22 @@ fun AppNavigation(
                 userViewModel = userViewModel
             )
         }
+
+        composable("${Screen.EditPost.route}/{postId}") { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId")?.toLongOrNull() ?: 0
+            EditPostScreen(
+                postId = postId,
+                viewModel = postViewModel,
+                userViewModel = userViewModel,
+                navController = navController
+            )
+        }
+
+        composable(Screen.EditProfile.route) {
+            EditProfileScreen(
+                userViewModel = userViewModel,
+                navController = navController
+            )
+        }
     }
 }

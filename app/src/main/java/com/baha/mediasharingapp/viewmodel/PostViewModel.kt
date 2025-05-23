@@ -1,3 +1,5 @@
+// src/main/java/com/baha/mediasharingapp/viewmodel/PostViewModel.kt
+
 package com.baha.mediasharingapp.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -17,6 +19,10 @@ class PostViewModel(
 
     val posts = repository.getPosts()
 
+    // Cache for immediate access
+    private val _cachedPosts = MutableStateFlow<List<Post>>(emptyList())
+    val cachedPosts: StateFlow<List<Post>> = _cachedPosts.asStateFlow()
+
     private val _userPosts = MutableStateFlow<List<Post>>(emptyList())
     val userPosts: StateFlow<List<Post>> = _userPosts.asStateFlow()
 
@@ -31,6 +37,13 @@ class PostViewModel(
         userMap[1L] = "john_doe"
         userMap[2L] = "jane_smith"
         userMap[3L] = "mike_wilson"
+
+        // Initialize cached posts
+        viewModelScope.launch {
+            posts.collect {
+                _cachedPosts.value = it
+            }
+        }
     }
 
     fun getUsernameForPost(userId: Long): String {
@@ -79,8 +92,23 @@ class PostViewModel(
     }
 
     fun getPostById(postId: Long): Post? {
-        // First try to find in the emitted posts
+        // First check the cached posts
+        val post = _cachedPosts.value.find { it.id == postId }
+        if (post != null) {
+            return post
+        }
+
+        // Then try all posts from UserViewModel
         val allPosts = userViewModel?.getAllPosts() ?: emptyList()
         return allPosts.find { it.id == postId }
+    }
+
+    fun refreshPosts() {
+        viewModelScope.launch {
+            // This will trigger the collector in init to update cachedPosts
+            repository.getPosts().collect {
+                _cachedPosts.value = it
+            }
+        }
     }
 }
