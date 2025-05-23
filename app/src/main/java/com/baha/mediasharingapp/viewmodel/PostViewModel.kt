@@ -1,5 +1,3 @@
-// src/main/java/com/baha/mediasharingapp/viewmodel/PostViewModel.kt
-
 package com.baha.mediasharingapp.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -39,11 +37,7 @@ class PostViewModel(
         userMap[3L] = "mike_wilson"
 
         // Initialize cached posts
-        viewModelScope.launch {
-            posts.collect {
-                _cachedPosts.value = it
-            }
-        }
+        refreshPosts()
     }
 
     fun getUsernameForPost(userId: Long): String {
@@ -65,16 +59,18 @@ class PostViewModel(
     fun addPost(post: Post) {
         viewModelScope.launch {
             repository.addPost(post)
-            // Make sure UserViewModel updates its state
+            // Update both view models to ensure consistency
             userViewModel?.updateUserPostsAfterChange()
+            refreshPosts()
         }
     }
 
     fun deletePost(post: Post) {
         viewModelScope.launch {
             repository.deletePost(post)
-            // Make sure UserViewModel updates its state
+            // Update both view models to ensure consistency
             userViewModel?.updateUserPostsAfterChange()
+            refreshPosts()
         }
     }
 
@@ -105,7 +101,6 @@ class PostViewModel(
 
     fun refreshPosts() {
         viewModelScope.launch {
-            // This will trigger the collector in init to update cachedPosts
             repository.getPosts().collect {
                 _cachedPosts.value = it
             }

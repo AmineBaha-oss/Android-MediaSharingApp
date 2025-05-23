@@ -1,6 +1,5 @@
 package com.baha.mediasharingapp
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,123 +17,131 @@ fun SignupScreen(
     navController: NavController,
     userViewModel: UserViewModel
 ) {
+    val context = LocalContext.current
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
+    var errorMessage by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            "Create Account",
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = username,
-            onValueChange = {
-                username = it
-                errorMessage = null
-            },
-            label = { Text("Username") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = {
-                email = it
-                errorMessage = null
-            },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = {
-                password = it
-                errorMessage = null
-            },
-            label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = {
-                confirmPassword = it
-                errorMessage = null
-            },
-            label = { Text("Confirm Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        errorMessage?.let {
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // App title
             Text(
-                text = it,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp)
+                text = "Media Sharing App",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 32.dp)
             )
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Create a new account",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
 
-        Button(
-            onClick = {
-                if (username.isBlank()) {
-                    errorMessage = "Username is required"
-                } else if (email.isBlank()) {
-                    errorMessage = "Email is required"
-                } else if (password.isBlank()) {
-                    errorMessage = "Password is required"
-                } else if (password != confirmPassword) {
-                    errorMessage = "Passwords do not match"
-                } else {
-                    if (userViewModel.signup(username, email, password)) {
-                        Toast.makeText(context, "Account created successfully!", Toast.LENGTH_SHORT).show()
-                        NotificationHelper.notify(
-                            context,
-                            "Welcome to Media Sharing App",
-                            "Your account has been created successfully."
-                        )
-                        navController.navigate(Screen.Feed.route) {
-                            popUpTo(navController.graph.id) { inclusive = true }
+            // Username field
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("Username") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+
+            // Email field
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+
+            // Password field
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+
+            // Confirm Password field
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Confirm Password") },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+
+            // Error message
+            if (errorMessage.isNotEmpty()) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Sign up button
+            Button(
+                onClick = {
+                    // Validation
+                    when {
+                        username.isEmpty() -> errorMessage = "Username cannot be empty"
+                        email.isEmpty() -> errorMessage = "Email cannot be empty"
+                        password.isEmpty() -> errorMessage = "Password cannot be empty"
+                        password != confirmPassword -> errorMessage = "Passwords do not match"
+                        else -> {
+                            errorMessage = ""
+                            // Call signup from UserViewModel
+                            val success = userViewModel.signup(username, email, password)
+                            if (success) {
+                                NotificationHelper.notify(
+                                    context,
+                                    "Account Created",
+                                    "Welcome to the app, $username!"
+                                )
+                                // Navigate to main screen
+                                navController.navigate(Screen.Feed.route) {
+                                    popUpTo(Screen.Login.route) { inclusive = true }
+                                }
+                            } else {
+                                errorMessage = "Signup failed. Please try again."
+                            }
                         }
-                    } else {
-                        errorMessage = "Username or email already exists"
                     }
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Sign Up")
-        }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp)
+            ) {
+                Text("Sign Up")
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextButton(
-            onClick = { navController.navigate(Screen.Login.route) },
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        ) {
-            Text("Already have an account? Log in")
+            // Login link
+            TextButton(
+                onClick = { navController.navigate(Screen.Login.route) }
+            ) {
+                Text("Already have an account? Login")
+            }
         }
     }
 }

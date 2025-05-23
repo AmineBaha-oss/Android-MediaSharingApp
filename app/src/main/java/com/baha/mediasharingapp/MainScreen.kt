@@ -11,10 +11,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.baha.mediasharingapp.viewmodel.PostViewModel
 import com.baha.mediasharingapp.viewmodel.UserViewModel
 
@@ -44,7 +46,7 @@ fun MainScreen(
                     label = { Text("Post") }
                 )
                 NavigationBarItem(
-                    selected = currentRoute == Screen.Map.route,
+                    selected = currentRoute == Screen.Map.route || currentRoute?.startsWith("map/") == true,
                     onClick = { mainNavController.navigate(Screen.Map.route) },
                     icon = { Icon(Icons.Default.Map, contentDescription = "Map") },
                     label = { Text("Map") }
@@ -81,6 +83,18 @@ fun MainScreen(
                 MapScreen(
                     userViewModel = userViewModel,
                     posts = userViewModel.getAllPosts()
+                )
+            }
+            // Add a new route for map with specific post ID
+            composable(
+                route = "map/{postId}",
+                arguments = listOf(navArgument("postId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val postId = backStackEntry.arguments?.getLong("postId")
+                MapScreen(
+                    userViewModel = userViewModel,
+                    posts = userViewModel.getAllPosts(),
+                    focusPostId = postId
                 )
             }
             composable(Screen.Profile.route) {

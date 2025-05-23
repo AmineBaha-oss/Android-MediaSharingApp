@@ -152,7 +152,10 @@ fun PostDetailScreen(
                     // Map button if location is available
                     if (post.lat != 0.0 && post.lng != 0.0) {
                         Button(
-                            onClick = { navController.navigate(Screen.Map.route) },
+                            onClick = {
+                                // Navigate to map with this specific post ID for focus
+                                navController.navigate("map/${post.id}")
+                            },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("View on Map")

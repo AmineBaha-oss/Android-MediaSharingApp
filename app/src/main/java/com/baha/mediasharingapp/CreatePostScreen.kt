@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddLocation
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +33,7 @@ import kotlin.random.Random
 
 // Placeholder image URL
 const val PLACEHOLDER_IMAGE_URL = "https://via.placeholder.com/400x300/6200EE/FFFFFF?text=Image+Placeholder"
+const val DEFAULT_LINKED_IMAGE = "https://picsum.photos/800/600"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,11 +44,13 @@ fun CreatePostScreen(
 ) {
     val context = LocalContext.current
     var caption by remember { mutableStateOf("") }
-    var imageUri by remember { mutableStateOf<Uri?>(Uri.parse(PLACEHOLDER_IMAGE_URL)) }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
     var locationName by remember { mutableStateOf("") }
     var lat by remember { mutableStateOf(0.0) }
     var lng by remember { mutableStateOf(0.0) }
     var photoFile by remember { mutableStateOf<File?>(null) }
+    var showLinkDialog by remember { mutableStateOf(false) }
+    var imageLink by remember { mutableStateOf("") }
 
     // Make sure Places API is initialized
     LaunchedEffect(Unit) {
@@ -100,6 +104,41 @@ fun CreatePostScreen(
                 }
             }
         }
+    }
+
+    if (showLinkDialog) {
+        AlertDialog(
+            onDismissRequest = { showLinkDialog = false },
+            title = { Text("Enter Image URL") },
+            text = {
+                OutlinedTextField(
+                    value = imageLink,
+                    onValueChange = { imageLink = it },
+                    label = { Text("Image URL") },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("e.g., https://example.com/image.jpg") }
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (imageLink.isNotBlank()) {
+                            imageUri = Uri.parse(imageLink)
+                        } else {
+                            imageUri = Uri.parse(DEFAULT_LINKED_IMAGE)
+                        }
+                        showLinkDialog = false
+                    }
+                ) {
+                    Text("Use Image")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLinkDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -158,11 +197,7 @@ fun CreatePostScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = {
-                        // Use placeholder if gallery is empty
-                        Toast.makeText(context, "Using placeholder image", Toast.LENGTH_SHORT).show()
-                        imageUri = Uri.parse(PLACEHOLDER_IMAGE_URL)
-                    },
+                    onClick = { imagePickerLauncher.launch("image/*") },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -204,6 +239,20 @@ fun CreatePostScreen(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Camera")
+                }
+
+                Button(
+                    onClick = {
+                        showLinkDialog = true
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Link,
+                        contentDescription = "Link Image"
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Link")
                 }
             }
 
@@ -287,6 +336,7 @@ fun CreatePostScreen(
 
                     viewModel.addPost(newPost)
                     viewModel.refreshPosts() // Explicitly refresh posts
+                    userViewModel.updateUserPostsAfterChange() // Update user posts
 
                     NotificationHelper.notify(
                         context,

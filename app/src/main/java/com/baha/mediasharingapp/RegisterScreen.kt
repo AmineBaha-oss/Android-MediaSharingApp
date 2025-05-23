@@ -1,6 +1,5 @@
 package com.baha.mediasharingapp
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -12,7 +11,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.baha.mediasharingapp.NotificationHelper
 import com.baha.mediasharingapp.viewmodel.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -21,21 +19,18 @@ fun RegisterScreen(
     navController: NavController,
     userViewModel: UserViewModel
 ) {
+    val context = LocalContext.current
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
+    var errorMessage by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create Account", color = MaterialTheme.colorScheme.onPrimary) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
+                title = { Text("Register", color = MaterialTheme.colorScheme.onPrimary) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -44,140 +39,137 @@ fun RegisterScreen(
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             )
         }
-    ) { paddingValues ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
+                .padding(padding)
+                .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            // Title
             Text(
-                "Join Media Sharing App",
-                style = MaterialTheme.typography.headlineSmall
+                text = "Create Account",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
+            // Username field
             OutlinedTextField(
                 value = username,
-                onValueChange = {
-                    username = it
-                    errorMessage = null
-                },
+                onValueChange = { username = it },
                 label = { Text("Username") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
+            // Email field
             OutlinedTextField(
                 value = email,
-                onValueChange = {
-                    email = it
-                    errorMessage = null
-                },
+                onValueChange = { email = it },
                 label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
+            // Password field
             OutlinedTextField(
                 value = password,
-                onValueChange = {
-                    password = it
-                    errorMessage = null
-                },
+                onValueChange = { password = it },
                 label = { Text("Password") },
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
+            // Confirm Password field
             OutlinedTextField(
                 value = confirmPassword,
-                onValueChange = {
-                    confirmPassword = it
-                    errorMessage = null
-                },
+                onValueChange = { confirmPassword = it },
                 label = { Text("Confirm Password") },
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
+            // Bio field
             OutlinedTextField(
                 value = bio,
-                onValueChange = {
-                    bio = it
-                },
-                label = { Text("Bio (Optional)") },
-                modifier = Modifier.fillMaxWidth()
+                onValueChange = { bio = it },
+                label = { Text("Bio (optional)") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                minLines = 3
             )
 
-            errorMessage?.let {
+            // Error message
+            if (errorMessage.isNotEmpty()) {
                 Text(
-                    text = it,
+                    text = errorMessage,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
+            // Register button
             Button(
                 onClick = {
-                    if (username.isBlank()) {
-                        errorMessage = "Username is required"
-                    } else if (email.isBlank()) {
-                        errorMessage = "Email is required"
-                    } else if (password.isBlank()) {
-                        errorMessage = "Password is required"
-                    } else if (password != confirmPassword) {
-                        errorMessage = "Passwords do not match"
-                    } else {
-                        // Call signup instead of register
-                        val success = userViewModel.signup(username, email, password)
-
-                        if (success) {
-                            // If signup was successful and we have bio information, update the profile
-                            if (bio.isNotBlank()) {
-                                userViewModel.updateUserProfile(username, email, bio)
+                    // Validation
+                    when {
+                        username.isEmpty() -> errorMessage = "Username cannot be empty"
+                        email.isEmpty() -> errorMessage = "Email cannot be empty"
+                        password.isEmpty() -> errorMessage = "Password cannot be empty"
+                        password != confirmPassword -> errorMessage = "Passwords do not match"
+                        else -> {
+                            errorMessage = ""
+                            // Call signup from UserViewModel
+                            val success = userViewModel.signup(username, email, password)
+                            if (success) {
+                                // Update profile with bio if provided
+                                if (bio.isNotEmpty()) {
+                                    userViewModel.updateUserProfile(username, email, bio)
+                                }
+                                NotificationHelper.notify(
+                                    context,
+                                    "Registration Successful",
+                                    "Welcome to the app, $username!"
+                                )
+                                // Navigate to main screen
+                                navController.navigate(Screen.Feed.route) {
+                                    popUpTo(Screen.Login.route) { inclusive = true }
+                                }
+                            } else {
+                                errorMessage = "Registration failed. Please try again."
                             }
-
-                            Toast.makeText(context, "Account created successfully!", Toast.LENGTH_SHORT).show()
-                            NotificationHelper.notify(
-                                context,
-                                "Welcome to Media Sharing",
-                                "Your account has been created successfully."
-                            )
-                            navController.navigate(Screen.Feed.route) {
-                                popUpTo(navController.graph.id) { inclusive = true }
-                            }
-                        } else {
-                            errorMessage = "Username or email already exists"
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp)
             ) {
-                Text("Sign Up")
+                Text("Register")
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+            // Login link
             TextButton(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                onClick = { navController.popBackStack() }
             ) {
-                Text("Already have an account? Log in")
+                Text("Already have an account? Login")
             }
         }
     }

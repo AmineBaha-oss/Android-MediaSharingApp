@@ -1,5 +1,6 @@
 package com.baha.mediasharingapp
 
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -34,20 +35,27 @@ fun EditPostScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-    val post = remember { viewModel.getPostById(postId) }
+
+    // Find the post in all posts
+    val allPosts = userViewModel.getAllPosts()
+    val post = remember(postId, allPosts) { allPosts.find { it.id == postId } }
 
     if (post == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
             Text("Post not found")
         }
         return
     }
 
     var caption by remember { mutableStateOf(post.caption) }
+    var imageUri by remember { mutableStateOf<Uri>(Uri.parse(post.imagePath)) }
     var locationName by remember { mutableStateOf(post.locationName) }
     var lat by remember { mutableStateOf(post.lat) }
     var lng by remember { mutableStateOf(post.lng) }
-    val imagePath = post.imagePath
+    var hasChanges by remember { mutableStateOf(false) }
 
     // Places API initialization
     LaunchedEffect(Unit) {
@@ -63,6 +71,17 @@ fun EditPostScreen(
         }
     }
 
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            imageUri = it
+            hasChanges = true
+        }
+    }
+
+    // Places autocomplete launcher
     val autocompleteLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -74,6 +93,7 @@ fun EditPostScreen(
                         lat = latLng.latitude
                         lng = latLng.longitude
                         locationName = place.name ?: place.address ?: "Selected Location"
+                        hasChanges = true
 
                         // Store the location name
                         userViewModel.addLocationName(lat, lng, locationName)
@@ -111,9 +131,9 @@ fun EditPostScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Show post image
+            // Show selected image
             Image(
-                painter = rememberAsyncImagePainter(imagePath),
+                painter = rememberAsyncImagePainter(imageUri),
                 contentDescription = "Post image",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -126,10 +146,28 @@ fun EditPostScreen(
             // Caption field
             OutlinedTextField(
                 value = caption,
-                onValueChange = { caption = it },
+                onValueChange = {
+                    caption = it
+                    hasChanges = true
+                },
                 label = { Text("Caption") },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Image selection options
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { imagePickerLauncher.launch("image/*") },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Change Image")
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -138,7 +176,7 @@ fun EditPostScreen(
                 onClick = {
                     try {
                         if (!com.google.android.libraries.places.api.Places.isInitialized()) {
-                            Toast.makeText(context, "Places API not initialized. Using current location.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Places API not initialized. Using default location.", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
@@ -156,10 +194,10 @@ fun EditPostScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
-                    contentDescription = "Update Location"
+                    contentDescription = "Change Location"
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(if (locationName.isNotEmpty()) locationName else "Add Location")
+                Text(if (locationName.isNotEmpty()) "Change Location: $locationName" else "Add Location")
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -167,26 +205,27 @@ fun EditPostScreen(
             Button(
                 onClick = {
                     if (caption.isBlank()) {
-                        Toast.makeText(context, "Caption cannot be empty", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Please add a caption", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
-                    // Create updated post
+                    // Create the updated post
                     val updatedPost = post.copy(
                         caption = caption,
-                        locationName = locationName,
+                        imagePath = imageUri.toString(),
                         lat = lat,
-                        lng = lng
+                        lng = lng,
+                        locationName = locationName
                     )
 
-                    // Update the post
+                    // Save the edited post
                     viewModel.addPost(updatedPost)
 
-                    // Refresh posts
-                    viewModel.refreshPosts()
+                    // Update all caches
                     userViewModel.updateUserPostsAfterChange()
+                    viewModel.refreshPosts()
 
-                    // Show notification
+                    // Notify the user
                     NotificationHelper.notify(
                         context,
                         "Post Updated",
@@ -196,7 +235,8 @@ fun EditPostScreen(
                     // Navigate back
                     navController.popBackStack()
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = hasChanges
             ) {
                 Text("Save Changes")
             }
