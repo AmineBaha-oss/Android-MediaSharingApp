@@ -20,4 +20,5 @@ interface PostDao {
 
     @Delete
     suspend fun deletePost(post: Post)
+    //room db
 }
