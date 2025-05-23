@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -29,8 +30,9 @@ fun PostDetailScreen(
     navController: NavController,
     userViewModel: UserViewModel
 ) {
-    val posts = viewModel.posts.collectAsState(initial = emptyList()).value
-    val post = remember(postId, posts) { posts.find { it.id == postId } }
+    val context = LocalContext.current
+    val allPosts = userViewModel.getAllPosts()
+    val post = remember(postId, allPosts) { allPosts.find { it.id == postId } }
     val currentUser = userViewModel.currentUser.collectAsState().value
 
     Scaffold(

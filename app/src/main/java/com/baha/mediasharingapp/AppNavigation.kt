@@ -60,7 +60,17 @@ fun AppNavigation(
         composable(Screen.Map.route) {
             MapScreen(
                 userViewModel = userViewModel,
-                posts = postViewModel.posts.collectAsState(initial = emptyList()).value
+                posts = userViewModel.getAllPosts()
+            )
+        }
+
+        composable("${Screen.PostDetail.route}/{postId}") { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId")?.toLongOrNull() ?: 0
+            PostDetailScreen(
+                postId = postId,
+                viewModel = postViewModel,
+                navController = navController,
+                userViewModel = userViewModel
             )
         }
     }
