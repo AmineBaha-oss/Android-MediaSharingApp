@@ -45,14 +45,6 @@ MediaSharingApp is a modern Android application built with Kotlin that empowers 
 4. **Run the App**
    - Connect your Android device or start an emulator, then click `Run`.
 
----
-
-## 🏞️ Screenshots
-
-<!-- Replace these with your actual screenshots if available -->
-| Capture Media | Browse Feed | Media on Map |
-|:---:|:---:|:---:|
-| ![Camera](screenshots/screenshot1.png) | ![Feed](screenshots/screenshot2.png) | ![Map](screenshots/screenshot3.png) |
 
 ---
 
